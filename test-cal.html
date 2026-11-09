@@ -1,322 +1,322 @@
-1|<!DOCTYPE html>
-2|<html lang="en">
-3|<head>
-4|  <meta charset="UTF-8">
-5|  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-6|  <meta name="robots" content="noindex">
-7|  <title>Calendar</title>
-8|  <style>
-9|    :root {
-10|      --bg: #0d0d0d;
-11|      --fg: #e8e8e8;
-12|      --muted: #6b6b6b;
-13|      --card: #161616;
-14|      --border: #2a2a2a;
-15|      --win: #16a34a;
-16|      --loss: #dc2626;
-17|      --win-bg: rgba(22, 163, 74, 0.12);
-18|      --loss-bg: rgba(220, 38, 38, 0.12);
-19|      --accent: #3b82f6;
-20|    }
-21|    * { box-sizing: border-box; margin: 0; padding: 0; }
-22|    body {
-23|      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-24|      background: var(--bg);
-25|      color: var(--fg);
-26|      min-height: 100vh;
-27|      padding: 24px;
-28|    }
-29|    .container { max-width: 1000px; margin: 0 auto; }
-30|    header {
-31|      display: flex; justify-content: space-between; align-items: center;
-32|      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
-33|    }
-34|    h1 { font-size: 1.5rem; font-weight: 600; }
-35|    .address { font-family: monospace; font-size: 0.85rem; color: var(--muted); }
-36|    .controls { display: flex; gap: 12px; align-items: center; }
-37|    button {
-38|      background: var(--card); border: 1px solid var(--border);
-39|      color: var(--fg); padding: 8px 16px; border-radius: 6px;
-40|      cursor: pointer; font-size: 0.875rem; transition: all 0.15s;
-41|    }
-42|    button:hover { border-color: var(--accent); background: #1a1a1a; }
-43|    button:disabled { opacity: 0.5; cursor: not-allowed; }
-44|    .month-nav { display: flex; gap: 8px; }
-45|    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-46|    .day-name {
-47|      text-align: center; padding: 8px; font-size: 0.75rem;
-48|      font-weight: 600; color: var(--muted); text-transform: uppercase;
-49|    }
-50|    .day {
-51|      background: var(--card); border: 1px solid var(--border);
-52|      border-radius: 8px; min-height: 120px; padding: 8px;
-53|      display: flex; flex-direction: column; position: relative;
-54|    }
-55|    .day.empty { background: transparent; border: none; min-height: 120px; }
-56|    .day-number { font-weight: 600; font-size: 0.9rem; }
-57|    .day.today .day-number { color: var(--accent); }
-58|    .pnl { margin-top: auto; font-size: 0.8rem; font-weight: 500; }
-59|    .pnl.win { color: var(--win); }
-60|    .pnl.loss { color: var(--loss); }
-61|    .pnl.zero { color: var(--muted); }
-62|    .day.win { background: var(--win-bg); border-color: var(--win); }
-63|    .day.loss { background: var(--loss-bg); border-color: var(--loss); }
-64|    .trades-count { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
-65|    .legend { display: flex; gap: 24px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 0.85rem; }
-66|    .legend-item { display: flex; align-items: center; gap: 8px; }
-67|    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
-68|    .total-row { display: flex; justify-content: space-between; margin-top: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
-69|    .total-label { color: var(--muted); }
-70|    .total-value { font-weight: 600; font-size: 1.1rem; }
-71|    .total-value.win { color: var(--win); }
-72|    .total-value.loss { color: var(--loss); }
-73|    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-74|    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-75|    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-76|    .stat-value { font-size: 1.1rem; font-weight: 600; }
-77|    .stat-value.win { color: var(--win); }
-78|    .stat-value.loss { color: var(--loss); }
-79|    .stat-value.neutral { color: var(--fg); }
-80|    .loading { text-align: center; padding: 40px; color: var(--muted); }
-81|    .error { text-align: center; padding: 20px; color: var(--loss); background: var(--loss-bg); border: 1px solid var(--loss); border-radius: 8px; margin-bottom: 16px; }
-82|  </style>
-83|</head>
-84|<body>
-85|  <div class="container">
-86|    <header>
-87|      <div>
-88|        <h1 id="monthTitle">Loading...</h1>
-89|        <div class="address" id="addressDisplay"></div>
-90|      </div>
-91|      <div class="controls">
-92|        <div class="month-nav">
-93|          <button id="prevMonth" aria-label="Previous month">‹</button>
-94|          <button id="nextMonth" aria-label="Next month">›</button>
-95|        </div>
-96|        <button id="fetchBtn">Fetch PnL Data</button>
-97|      </div>
-98|    </header>
-99|
-100|    <div id="errorBox" class="error" style="display:none;"></div>
-101|    <div id="loading" class="loading">Click "Fetch PnL Data" to load Hyperliquid fills</div>
-102|
-103|    <div class="total-row" id="totalRow" style="display:none; margin-bottom: 16px;">
-104|      <span class="total-label">Month Total</span>
-105|      <span class="total-value" id="totalValue">$0.00</span>
-106|    </div>
-107|
-108|    <div class="stats-row" id="statsRow" style="display:none; margin-bottom: 16px;"></div>
-109|
-110|    <div class="calendar" id="calendar" style="display:none;">
-111|      <div class="day-name">Sun</div>
-112|      <div class="day-name">Mon</div>
-113|      <div class="day-name">Tue</div>
-114|      <div class="day-name">Wed</div>
-115|      <div class="day-name">Thu</div>
-116|      <div class="day-name">Fri</div>
-117|      <div class="day-name">Sat</div>
-118|    </div>
-119|  </div>
-120|
-121|<script>
-122|const ADDRESS = '0x26Fb8438f3f598B8694F04161c2163988a9BC538';
-123|const API_BASE = 'https://api.hyperliquid.xyz/info';
-124|
-125|let currentDate = new Date();
-126|currentDate.setDate(1);
-127|let pnlData = {};
-128|
-129|const $ = (id) => document.getElementById(id);
-130|const dayKey = (d) => d.toISOString().split('T')[0];
-131|
-132|function formatMonth(d) {
-133|  return d.toLocaleString('default', { month: 'long', year: 'numeric' });
-134|}
-135|
-136|function renderCalendar() {
-137|  $('monthTitle').textContent = formatMonth(currentDate);
-138|  const calendar = $('calendar');
-139|  calendar.querySelectorAll('.day, .day.empty').forEach(el => el.remove());
-140|
-141|  const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-142|  const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-143|  const startOffset = firstDay.getDay();
-144|  const today = new Date(); today.setHours(0,0,0,0);
-145|  const currentMonthKey = currentDate.toISOString().slice(0,7);
-146|
-147|  for (let i = 0; i < startOffset; i++) {
-148|    const empty = document.createElement('div');
-149|    empty.className = 'day empty';
-150|    calendar.appendChild(empty);
-151|  }
-152|
-153|  for (let d = 1; d <= lastDay.getDate(); d++) {
-154|    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), d);
-155|    const key = dayKey(date);
-156|    const data = pnlData[key] || { pnl: 0, trades: 0 };
-157|    const isToday = date.getTime() === today.getTime() && currentMonthKey === today.toISOString().slice(0,7);
-158|
-159|    const cell = document.createElement('div');
-160|    cell.className = 'day';
-161|    if (isToday) cell.classList.add('today');
-162|    if (data.trades > 0) {
-163|      cell.classList.add(data.pnl >= 0 ? 'win' : 'loss');
-164|    }
-165|
-166|    cell.innerHTML = `
-167|      <div class="day-number">${d}</div>
-168|      <div class="pnl ${data.trades === 0 ? 'zero' : data.pnl >= 0 ? 'win' : 'loss'}">
-169|        ${data.trades === 0 ? '—' : (data.pnl >= 0 ? '+' : '') + data.pnl.toFixed(2)}
-170|      </div>
-171|      <div class="trades-count">${data.trades} trade${data.trades !== 1 ? 's' : ''}</div>
-172|    `;
-173|    calendar.appendChild(cell);
-174|  }
-175|
-176|  const monthPnl = Object.entries(pnlData)
-177|    .filter(([k]) => k.startsWith(currentMonthKey))
-178|    .reduce((sum, [, v]) => sum + v.pnl, 0);
-179|
-180|  // Compute stats for current month
-181|  const monthDays = Object.entries(pnlData)
-182|    .filter(([k, v]) => k.startsWith(currentMonthKey) && v.trades > 0);
-183|  const winningDays = monthDays.filter(([, v]) => v.pnl > 0);
-184|  const losingDays = monthDays.filter(([, v]) => v.pnl < 0);
-185|  const totalTrades = monthDays.reduce((sum, [, v]) => sum + v.trades, 0);
-186|  const winningTrades = winningDays.reduce((sum, [, v]) => sum + v.trades, 0);
-187|  const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100).toFixed(1) : '0.0';
-188|  const biggestWin = winningDays.length > 0 ? Math.max(...winningDays.map(([, v]) => v.pnl)) : 0;
-189|  const biggestLoss = losingDays.length > 0 ? Math.min(...losingDays.map(([, v]) => v.pnl)) : 0;
-190|  const avgWin = winningDays.length > 0 ? (winningDays.reduce((s, [, v]) => s + v.pnl, 0) / winningDays.length).toFixed(2) : '0.00';
-191|  const avgLoss = losingDays.length > 0 ? (losingDays.reduce((s, [, v]) => s + v.pnl, 0) / losingDays.length).toFixed(2) : '0.00';
-192|  const profitFactor = losingDays.length > 0 && Math.abs(losingDays.reduce((s, [, v]) => s + v.pnl, 0)) > 0
-193|    ? (winningDays.reduce((s, [, v]) => s + v.pnl, 0) / Math.abs(losingDays.reduce((s, [, v]) => s + v.pnl, 0))).toFixed(2)
-194|    : winningDays.length > 0 ? '∞' : '0.00';
-195|
-196|  const statsHtml = `
-197|    <div class="stat-card">
-198|      <div class="stat-label">Green Days %</div>
-199|      <div class="stat-value win">${monthDays.length > 0 ? (winningDays.length / monthDays.length * 100).toFixed(1) : '0.0'}%</div>
-200|    </div>
-201|    <div class="stat-card">
-202|      <div class="stat-label">Trade Win Rate</div>
-203|      <div class="stat-value neutral">${winRate}%</div>
-204|    </div>
-205|    <div class="stat-card">
-206|      <div class="stat-label">Biggest Win (Day)</div>
-207|      <div class="stat-value win">+${biggestWin.toFixed(2)}</div>
-208|    </div>
-209|    <div class="stat-card">
-210|      <div class="stat-label">Biggest Loss (Day)</div>
-211|      <div class="stat-value loss">${biggestLoss.toFixed(2)}</div>
-212|    </div>
-213|    <div class="stat-card">
-214|      <div class="stat-label">Avg Win / Avg Loss</div>
-215|      <div class="stat-value neutral">+${avgWin} / ${avgLoss}</div>
-216|    </div>
-217|    <div class="stat-card">
-218|      <div class="stat-label">Profit Factor</div>
-219|      <div class="stat-value ${profitFactor === '∞' || parseFloat(profitFactor) >= 1 ? 'win' : 'loss'}">${profitFactor}</div>
-220|    </div>
-221|    <div class="stat-card">
-222|      <div class="stat-label">Total Trades</div>
-223|      <div class="stat-value neutral">${totalTrades}</div>
-224|    </div>
-225|  `;
-226|  $('statsRow').innerHTML = statsHtml;
-227|  $('statsRow').style.display = 'grid';
-228|
-229|  $('totalValue').textContent = (monthPnl >= 0 ? '+' : '') + monthPnl.toFixed(2);
-230|  $('totalValue').className = 'total-value ' + (monthPnl >= 0 ? 'win' : 'loss');
-231|  $('totalRow').style.display = 'flex';
-232|  $('calendar').style.display = 'grid';
-233|  $('loading').style.display = 'none';
-234|}
-235|
-236|async function fetchPnL() {
-237|  $('fetchBtn').disabled = true;
-238|  $('fetchBtn').textContent = 'Fetching...';
-239|  $('errorBox').style.display = 'none';
-240|
-241|  const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-242|  const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
-243|  const startMs = startOfMonth.getTime();
-244|  const endMs = endOfMonth.getTime();
-245|
-246|  try {
-247|    const res = await fetch(API_BASE, {
-248|      method: 'POST',
-249|      headers: { 'Content-Type': 'application/json' },
-250|      body: JSON.stringify({
-251|        type: 'userFills',
-252|        user: ADDRESS,
-253|        startTime: startMs,
-254|        endTime: endMs
-255|      })
-256|    });
-257|
-258|    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-259|    const fills = await res.json();
-260|
-261|    pnlData = {};
-262|    for (const fill of fills) {
-263|      const fillTime = new Date(fill.time);
-264|      const key = dayKey(fillTime);
-265|      const closedPnl = parseFloat(fill.closedPnl || 0);
-266|      const fee = parseFloat(fill.fee || 0) * -1;
-267|      const pnl = closedPnl + fee;
-268|      if (!pnlData[key]) pnlData[key] = { pnl: 0, exits: 0 };
-269|      pnlData[key].pnl += pnl;
-270|      if (Math.abs(closedPnl) > 0.01) {
-271|        pnlData[key].exits += 1;
-272|      }
-273|    }
-274|    for (const data of Object.values(pnlData)) {
-275|      data.trades = data.exits;
-276|      delete data.exits;
-277|    }
-278|
-279|    renderCalendar();
-280|  } catch (err) {
-281|    $('errorBox').textContent = `Failed to fetch: ${err.message}. API may be down.`;
-282|    $('errorBox').style.display = 'block';
-283|    loadMockData();
-284|  } finally {
-285|    $('fetchBtn').disabled = false;
-286|    $('fetchBtn').textContent = 'Fetch PnL Data';
-287|  }
-288|}
-289|
-290|function loadMockData() {
-291|  const year = currentDate.getFullYear();
-292|  const month = currentDate.getMonth();
-293|  pnlData = {
-294|    [`${year}-${String(month+1).padStart(2,'0')}-02`]: { pnl: 342.15, trades: 4 },
-295|    [`${year}-${String(month+1).padStart(2,'0')}-05`]: { pnl: -128.50, trades: 2 },
-296|    [`${year}-${String(month+1).padStart(2,'0')}-08`]: { pnl: 567.80, trades: 6 },
-297|    [`${year}-${String(month+1).padStart(2,'0')}-12`]: { pnl: -89.20, trades: 3 },
-298|    [`${year}-${String(month+1).padStart(2,'0')}-15`]: { pnl: 234.00, trades: 5 },
-299|    [`${year}-${String(month+1).padStart(2,'0')}-19`]: { pnl: -45.60, trades: 1 },
-300|    [`${year}-${String(month+1).padStart(2,'0')}-22`]: { pnl: 712.30, trades: 7 },
-301|    [`${year}-${String(month+1).padStart(2,'0')}-26`]: { pnl: -201.40, trades: 2 },
-302|    [`${year}-${String(month+1).padStart(2,'0')}-29`]: { pnl: 156.75, trades: 3 },
-303|  };
-304|  renderCalendar();
-305|  $('errorBox').textContent = 'Showing mock data (API unavailable). Click Fetch to retry.';
-306|  $('errorBox').style.display = 'block';
-307|}
-308|
-309|$('prevMonth').onclick = () => {
-310|  currentDate.setMonth(currentDate.getMonth() - 1);
-311|  fetchPnL();
-312|};
-313|$('nextMonth').onclick = () => {
-314|  currentDate.setMonth(currentDate.getMonth() + 1);
-315|  fetchPnL();
-316|};
-317|$('fetchBtn').onclick = fetchPnL;
-318|
-319|loadMockData();
-320|</script>
-321|</body>
-322|</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Calendar</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --fg: #e8e8e8;
+      --muted: #6b6b6b;
+      --card: #161616;
+      --border: #2a2a2a;
+      --win: #16a34a;
+      --loss: #dc2626;
+      --win-bg: rgba(22, 163, 74, 0.12);
+      --loss-bg: rgba(220, 38, 38, 0.12);
+      --accent: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    h1 { font-size: 1.5rem; font-weight: 600; }
+    .address { font-family: monospace; font-size: 0.85rem; color: var(--muted); }
+    .controls { display: flex; gap: 12px; align-items: center; }
+    button {
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--fg); padding: 8px 16px; border-radius: 6px;
+      cursor: pointer; font-size: 0.875rem; transition: all 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #1a1a1a; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .month-nav { display: flex; gap: 8px; }
+    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .day-name {
+      text-align: center; padding: 8px; font-size: 0.75rem;
+      font-weight: 600; color: var(--muted); text-transform: uppercase;
+    }
+    .day {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; min-height: 120px; padding: 8px;
+      display: flex; flex-direction: column; position: relative;
+    }
+    .day.empty { background: transparent; border: none; min-height: 120px; }
+    .day-number { font-weight: 600; font-size: 0.9rem; }
+    .day.today .day-number { color: var(--accent); }
+    .pnl { margin-top: auto; font-size: 0.8rem; font-weight: 500; }
+    .pnl.win { color: var(--win); }
+    .pnl.loss { color: var(--loss); }
+    .pnl.zero { color: var(--muted); }
+    .day.win { background: var(--win-bg); border-color: var(--win); }
+    .day.loss { background: var(--loss-bg); border-color: var(--loss); }
+    .trades-count { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .legend { display: flex; gap: 24px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 0.85rem; }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .total-row { display: flex; justify-content: space-between; margin-top: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+    .total-label { color: var(--muted); }
+    .total-value { font-weight: 600; font-size: 1.1rem; }
+    .total-value.win { color: var(--win); }
+    .total-value.loss { color: var(--loss); }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .stat-value { font-size: 1.1rem; font-weight: 600; }
+    .stat-value.win { color: var(--win); }
+    .stat-value.loss { color: var(--loss); }
+    .stat-value.neutral { color: var(--fg); }
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    .error { text-align: center; padding: 20px; color: var(--loss); background: var(--loss-bg); border: 1px solid var(--loss); border-radius: 8px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1 id="monthTitle">Loading...</h1>
+        <div class="address" id="addressDisplay"></div>
+      </div>
+      <div class="controls">
+        <div class="month-nav">
+          <button id="prevMonth" aria-label="Previous month">‹</button>
+          <button id="nextMonth" aria-label="Next month">›</button>
+        </div>
+        <button id="fetchBtn">Fetch PnL Data</button>
+      </div>
+    </header>
+
+    <div id="errorBox" class="error" style="display:none;"></div>
+    <div id="loading" class="loading">Click "Fetch PnL Data" to load Hyperliquid fills</div>
+
+    <div class="total-row" id="totalRow" style="display:none; margin-bottom: 16px;">
+      <span class="total-label">Month Total</span>
+      <span class="total-value" id="totalValue">$0.00</span>
+    </div>
+
+    <div class="stats-row" id="statsRow" style="display:none; margin-bottom: 16px;"></div>
+
+    <div class="calendar" id="calendar" style="display:none;">
+      <div class="day-name">Sun</div>
+      <div class="day-name">Mon</div>
+      <div class="day-name">Tue</div>
+      <div class="day-name">Wed</div>
+      <div class="day-name">Thu</div>
+      <div class="day-name">Fri</div>
+      <div class="day-name">Sat</div>
+    </div>
+  </div>
+
+<script>
+const ADDRESS = '0x26Fb8438f3f598B8694F04161c2163988a9BC538';
+const API_BASE = 'https://api.hyperliquid.xyz/info';
+
+let currentDate = new Date();
+currentDate.setDate(1);
+let pnlData = {};
+
+const $ = (id) => document.getElementById(id);
+const dayKey = (d) => d.toISOString().split('T')[0];
+
+function formatMonth(d) {
+  return d.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+function renderCalendar() {
+  $('monthTitle').textContent = formatMonth(currentDate);
+  const calendar = $('calendar');
+  calendar.querySelectorAll('.day, .day.empty').forEach(el => el.remove());
+
+  const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const startOffset = firstDay.getDay();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const currentMonthKey = currentDate.toISOString().slice(0,7);
+
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'day empty';
+    calendar.appendChild(empty);
+  }
+
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), d);
+    const key = dayKey(date);
+    const data = pnlData[key] || { pnl: 0, trades: 0 };
+    const isToday = date.getTime() === today.getTime() && currentMonthKey === today.toISOString().slice(0,7);
+
+    const cell = document.createElement('div');
+    cell.className = 'day';
+    if (isToday) cell.classList.add('today');
+    if (data.trades > 0) {
+      cell.classList.add(data.pnl >= 0 ? 'win' : 'loss');
+    }
+
+    cell.innerHTML = `
+      <div class="day-number">${d}</div>
+      <div class="pnl ${data.trades === 0 ? 'zero' : data.pnl >= 0 ? 'win' : 'loss'}">
+        ${data.trades === 0 ? '—' : (data.pnl >= 0 ? '+' : '') + data.pnl.toFixed(2)}
+      </div>
+      <div class="trades-count">${data.trades} trade${data.trades !== 1 ? 's' : ''}</div>
+    `;
+    calendar.appendChild(cell);
+  }
+
+  const monthPnl = Object.entries(pnlData)
+    .filter(([k]) => k.startsWith(currentMonthKey))
+    .reduce((sum, [, v]) => sum + v.pnl, 0);
+
+  // Compute stats for current month
+  const monthDays = Object.entries(pnlData)
+    .filter(([k, v]) => k.startsWith(currentMonthKey) && v.trades > 0);
+  const winningDays = monthDays.filter(([, v]) => v.pnl > 0);
+  const losingDays = monthDays.filter(([, v]) => v.pnl < 0);
+  const totalTrades = monthDays.reduce((sum, [, v]) => sum + v.trades, 0);
+  const winningTrades = winningDays.reduce((sum, [, v]) => sum + v.trades, 0);
+  const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100).toFixed(1) : '0.0';
+  const biggestWin = winningDays.length > 0 ? Math.max(...winningDays.map(([, v]) => v.pnl)) : 0;
+  const biggestLoss = losingDays.length > 0 ? Math.min(...losingDays.map(([, v]) => v.pnl)) : 0;
+  const avgWin = winningDays.length > 0 ? (winningDays.reduce((s, [, v]) => s + v.pnl, 0) / winningDays.length).toFixed(2) : '0.00';
+  const avgLoss = losingDays.length > 0 ? (losingDays.reduce((s, [, v]) => s + v.pnl, 0) / losingDays.length).toFixed(2) : '0.00';
+  const profitFactor = losingDays.length > 0 && Math.abs(losingDays.reduce((s, [, v]) => s + v.pnl, 0)) > 0
+    ? (winningDays.reduce((s, [, v]) => s + v.pnl, 0) / Math.abs(losingDays.reduce((s, [, v]) => s + v.pnl, 0))).toFixed(2)
+    : winningDays.length > 0 ? '∞' : '0.00';
+
+  const statsHtml = `
+    <div class="stat-card">
+      <div class="stat-label">Green Days %</div>
+      <div class="stat-value win">${monthDays.length > 0 ? (winningDays.length / monthDays.length * 100).toFixed(1) : '0.0'}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Trade Win Rate</div>
+      <div class="stat-value neutral">${winRate}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Biggest Win (Day)</div>
+      <div class="stat-value win">+${biggestWin.toFixed(2)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Biggest Loss (Day)</div>
+      <div class="stat-value loss">${biggestLoss.toFixed(2)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Win / Avg Loss</div>
+      <div class="stat-value neutral">+${avgWin} / ${avgLoss}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Profit Factor</div>
+      <div class="stat-value ${profitFactor === '∞' || parseFloat(profitFactor) >= 1 ? 'win' : 'loss'}">${profitFactor}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Trades</div>
+      <div class="stat-value neutral">${totalTrades}</div>
+    </div>
+  `;
+  $('statsRow').innerHTML = statsHtml;
+  $('statsRow').style.display = 'grid';
+
+  $('totalValue').textContent = (monthPnl >= 0 ? '+' : '') + monthPnl.toFixed(2);
+  $('totalValue').className = 'total-value ' + (monthPnl >= 0 ? 'win' : 'loss');
+  $('totalRow').style.display = 'flex';
+  $('calendar').style.display = 'grid';
+  $('loading').style.display = 'none';
+}
+
+async function fetchPnL() {
+  $('fetchBtn').disabled = true;
+  $('fetchBtn').textContent = 'Fetching...';
+  $('errorBox').style.display = 'none';
+
+  const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+  const startMs = startOfMonth.getTime();
+  const endMs = endOfMonth.getTime();
+
+  try {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'userFills',
+        user: ADDRESS,
+        startTime: startMs,
+        endTime: endMs
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const fills = await res.json();
+
+    pnlData = {};
+    for (const fill of fills) {
+      const fillTime = new Date(fill.time);
+      const key = dayKey(fillTime);
+      const closedPnl = parseFloat(fill.closedPnl || 0);
+      const fee = parseFloat(fill.fee || 0) * -1;
+      const pnl = closedPnl + fee;
+      if (!pnlData[key]) pnlData[key] = { pnl: 0, exits: 0 };
+      pnlData[key].pnl += pnl;
+      if (Math.abs(closedPnl) > 0.01) {
+        pnlData[key].exits += 1;
+      }
+    }
+    for (const data of Object.values(pnlData)) {
+      data.trades = data.exits;
+      delete data.exits;
+    }
+
+    renderCalendar();
+  } catch (err) {
+    $('errorBox').textContent = `Failed to fetch: ${err.message}. API may be down.`;
+    $('errorBox').style.display = 'block';
+    loadMockData();
+  } finally {
+    $('fetchBtn').disabled = false;
+    $('fetchBtn').textContent = 'Fetch PnL Data';
+  }
+}
+
+function loadMockData() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  pnlData = {
+    [`${year}-${String(month+1).padStart(2,'0')}-02`]: { pnl: 342.15, trades: 4 },
+    [`${year}-${String(month+1).padStart(2,'0')}-05`]: { pnl: -128.50, trades: 2 },
+    [`${year}-${String(month+1).padStart(2,'0')}-08`]: { pnl: 567.80, trades: 6 },
+    [`${year}-${String(month+1).padStart(2,'0')}-12`]: { pnl: -89.20, trades: 3 },
+    [`${year}-${String(month+1).padStart(2,'0')}-15`]: { pnl: 234.00, trades: 5 },
+    [`${year}-${String(month+1).padStart(2,'0')}-19`]: { pnl: -45.60, trades: 1 },
+    [`${year}-${String(month+1).padStart(2,'0')}-22`]: { pnl: 712.30, trades: 7 },
+    [`${year}-${String(month+1).padStart(2,'0')}-26`]: { pnl: -201.40, trades: 2 },
+    [`${year}-${String(month+1).padStart(2,'0')}-29`]: { pnl: 156.75, trades: 3 },
+  };
+  renderCalendar();
+  $('errorBox').textContent = 'Showing mock data (API unavailable). Click Fetch to retry.';
+  $('errorBox').style.display = 'block';
+}
+
+$('prevMonth').onclick = () => {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  fetchPnL();
+};
+$('nextMonth').onclick = () => {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  fetchPnL();
+};
+$('fetchBtn').onclick = fetchPnL;
+
+loadMockData();
+</script>
+</body>
+</html>
